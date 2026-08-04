@@ -29,7 +29,11 @@
   .freshbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px;font-size:12.5px}
   .fresh{background:var(--green-bg);color:var(--green);border:1px solid #bfe3cc;border-radius:20px;padding:4px 12px;font-weight:600}
   .fresh.muted{background:#eef1f6;color:var(--muted);border-color:var(--line)}
-  .topgrid{display:grid;grid-template-columns:320px minmax(300px,1fr) 440px;gap:16px;margin-top:14px;align-items:start}
+  .topgrid{display:grid;grid-template-columns:320px minmax(300px,1fr) 440px;gap:16px;margin-top:14px;align-items:stretch}
+  .leftcol{display:flex;flex-direction:column;height:372px}
+  .leftcol .filters{flex:1}
+  .topgrid>.card{display:flex;flex-direction:column;height:372px}
+  .topgrid>.card .body{flex:1;min-height:0;overflow-y:auto}
   .kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .kpi{background:var(--white);border:1px solid var(--line);border-radius:8px;padding:11px 12px;box-shadow:0 1px 2px rgba(31,56,100,.05)}
   .kpi .lbl{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.4px;line-height:1.25}
@@ -63,7 +67,7 @@
   tbody td{padding:6px 9px;border-bottom:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   tbody td.num{text-align:right;font-variant-numeric:tabular-nums}tbody td.ctr{text-align:center}
   tbody tr:nth-child(even){background:var(--blue-soft)}tbody tr:hover{background:var(--blue)}
-  #condwrap{max-height:288px;overflow-y:auto;overflow-x:hidden}
+  #condwrap{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden}
   #condtbl colgroup col.k-con{width:auto}col.k-cli{width:40px}col.k-und{width:64px}col.k-imp{width:78px}
   #condtbl tbody tr{cursor:pointer}
   #condtbl tbody tr.sel{background:var(--sel)!important;box-shadow:inset 3px 0 0 var(--sel-b)}
@@ -95,7 +99,7 @@
   .gerr{color:#b3402e;font-size:12.5px;font-weight:600;min-height:18px;margin-bottom:8px}
   .glink{background:none;border:0;color:var(--muted);font-size:12px;cursor:pointer;margin-top:12px;text-decoration:underline}
   #app{display:none}
-  @media(max-width:1240px){.topgrid{grid-template-columns:1fr 1fr}.topgrid>.card:last-child{grid-column:1/-1}}
+  @media(max-width:1240px){.topgrid{grid-template-columns:1fr 1fr}.topgrid>.card:last-child{grid-column:1/-1}.leftcol,.topgrid>.card{height:auto}#condwrap{max-height:340px}}
   @media(max-width:820px){.topgrid{grid-template-columns:1fr}}
 </style>
 </head>
@@ -145,7 +149,7 @@
 
   <div id="app">
     <div class="topgrid">
-      <div>
+      <div class="leftcol">
         <div class="kpis" id="kpis"></div>
         <div class="filters">
           <div class="fg full"><label>Buscar cliente</label><input id="q" type="text" placeholder="nombre o código…"></div>
@@ -207,8 +211,8 @@
 </div>
 
 <script>
-const eUnd=n=>new Intl.NumberFormat('es-ES',{maximumFractionDigits:0}).format(n);
-const eEur=n=>new Intl.NumberFormat('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n)+' €';
+const eUnd=n=>new Intl.NumberFormat('es-ES',{maximumFractionDigits:0,useGrouping:'always'}).format(n);
+const eEur=n=>new Intl.NumberFormat('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2,useGrouping:'always'}).format(n)+' €';
 const selM=()=>document.getElementById('fmarca');
 let DATA=[], COND=[], marcaArr=[], marcaMax=1;
 let sortK='unidades',sortDir=-1, condK='unidades',condDir=-1, activeDesc='';
@@ -407,7 +411,7 @@ function pickEncFile(){return new Promise((res,rej)=>{
     rd.onload=e=>res(new Uint8Array(e.target.result)); rd.onerror=()=>rej(new Error('lectura')); rd.readAsArrayBuffer(f);};
 });}
 async function getEncBytes(){
-  try{const r=await fetch(DATA_URL,{cache:'no-store'}); if(!r.ok)throw new Error('HTTP '+r.status);
+  try{const r=await fetch(DATA_URL+'?t='+Date.now(),{cache:'no-store'}); if(!r.ok)throw new Error('HTTP '+r.status);
     return new Uint8Array(await r.arrayBuffer());}
   catch(_){ return await pickEncFile(); }
 }
