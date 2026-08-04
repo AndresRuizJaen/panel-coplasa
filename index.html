@@ -101,6 +101,28 @@
   #app{display:none}
   @media(max-width:1240px){.topgrid{grid-template-columns:1fr 1fr}.topgrid>.card:last-child{grid-column:1/-1}.leftcol,.topgrid>.card{height:auto}#condwrap{max-height:340px}}
   @media(max-width:820px){.topgrid{grid-template-columns:1fr}}
+  @media(max-width:600px){
+    .wrap{padding:0 12px 24px}
+    header.top{padding:12px 0}
+    h1{font-size:16px}.sub{font-size:11px}
+    .topgrid{gap:12px}
+    .kpi .val{font-size:20px}
+    .bar-row{grid-template-columns:90px 1fr 52px;gap:7px}
+    .bar-row .mk{font-size:11.5px}
+    #condtbl{font-size:11.5px}
+    .count{font-size:11.5px}
+    /* Tabla de detalle -> fichas apiladas */
+    #dettbl thead,#dettbl colgroup{display:none}
+    #dettbl,#dettbl tbody{display:block}
+    #detwrap{max-height:none;overflow:visible;border-top:0}
+    #dettbl tr{display:block;border:1px solid var(--line);border-radius:8px;margin:0 2px 10px;background:#fff!important;padding:2px 0}
+    #dettbl tr:nth-child(even){background:#fff!important}
+    #dettbl td{display:flex;justify-content:space-between;align-items:baseline;gap:14px;border:0;padding:4px 12px;white-space:normal;text-align:right;overflow:visible;text-overflow:clip}
+    #dettbl td::before{content:attr(data-label);font-weight:700;color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.3px;text-align:left;flex:0 0 auto}
+    #dettbl td.cli{display:block;text-align:left;font-size:14px;font-weight:700;padding:7px 12px 8px;border-bottom:1px solid var(--line);margin-bottom:3px}
+    #dettbl td.cli::before{display:none}
+    #dettbl td.cod{color:var(--navy);font-weight:700}
+  }
 </style>
 </head>
 <body>
@@ -347,11 +369,11 @@ function render(){
     const und=r.unidades>0?`<span class="pos">${eUnd(r.unidades)}</span>`:`<span class="zero">${eUnd(r.unidades)}</span>`;
     const dto=(r.dto1||0)+(r.dto2?'+'+r.dto2:'');
     const gs=r.gs==='—'?'<span class="marca-comp" title="Toda la marca">marca</span>':`<span class="gs">${r.gs}</span>`;
-    return `<tr><td class="ctr cod">${r.cliente}</td><td class="cli" title="${r.nombre}">${r.nombre}</td>
-      <td title="${r.marca}">${r.marca}</td><td title="${r.descripcion}">${r.descripcion}</td>
-      <td class="ctr">${gs}</td><td class="num"><span class="dto">${dto}%</span></td>
-      <td class="num">${r.nlineas}</td><td class="num">${und}</td>
-      <td class="num">${r.importe?eEur(r.importe):'—'}</td></tr>`;}).join('');
+    return `<tr><td class="ctr cod" data-label="Cód.">${r.cliente}</td><td class="cli" title="${r.nombre}">${r.nombre}</td>
+      <td data-label="Marca" title="${r.marca}">${r.marca}</td><td data-label="Condición" title="${r.descripcion}">${r.descripcion}</td>
+      <td class="ctr" data-label="Gr-Sgr">${gs}</td><td class="num" data-label="Dto"><span class="dto">${dto}%</span></td>
+      <td class="num" data-label="Líneas">${r.nlineas}</td><td class="num" data-label="Uds. netas">${und}</td>
+      <td class="num" data-label="Importe">${r.importe?eEur(r.importe):'—'}</td></tr>`;}).join('');
   document.querySelectorAll('#dettbl thead th').forEach(th=>{const a=th.querySelector('.arr');if(a)a.textContent=th.dataset.k===sortK?(sortDir<0?'▼':'▲'):'';});
   renderChart(); renderCond();
 }
