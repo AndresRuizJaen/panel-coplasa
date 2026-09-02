@@ -340,49 +340,62 @@ function buildDerived(){
   marcaMax=Math.max(1,...marcaArr.map(x=>x[1]));
 }
 
-function filtered(){
+function filtered(except){
   const q=document.getElementById('q').value.trim().toLowerCase();
   const fm=selM().value,fa=document.getElementById('fambito').value,solo=document.getElementById('solo').checked;
   return DATA.filter(d=>{
     if(solo&&d.nlineas<=0)return false;
-    if(activeDesc&&d.descuento!==activeDesc)return false;
-    if(activeRep!==''&&String(d.rep)!==String(activeRep))return false;
-    if(fm&&d.marca!==fm)return false;
+    if(except!=='desc' && activeDesc && d.descuento!==activeDesc)return false;
+    if(except!=='rep' && activeRep!=='' && String(d.rep)!==String(activeRep))return false;
+    if(except!=='marca' && fm && d.marca!==fm)return false;
     if(fa&&d.ambito!==fa)return false;
     if(q){const s=(d.nombre+' '+d.cliente).toLowerCase();if(!s.includes(q))return false;}
     return true;});
 }
 function renderChart(){
-  document.getElementById('chart').innerHTML=marcaArr.map(([m,v])=>
+  const rows=filtered('marca');
+  const bym={}; rows.forEach(d=>{if(d.nlineas>0)bym[d.marca]=(bym[d.marca]||0)+d.unidades;});
+  const arr=Object.entries(bym).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]);
+  const max=Math.max(1,...arr.map(x=>x[1]));
+  document.getElementById('chart').innerHTML=arr.length?arr.map(([m,v])=>
     `<div class="bar-row ${selM().value===m?'sel':''}" data-m="${m}" title="${m} — clic para filtrar">
       <span class="mk">${m}</span>
-      <div class="bar-track"><div class="bar-fill" style="width:${Math.max(2,v/marcaMax*100)}%"></div></div>
-      <span class="nm">${eUnd(v)}</span></div>`).join('');
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.max(2,v/max*100)}%"></div></div>
+      <span class="nm">${eUnd(v)}</span></div>`).join(''):'<div style="color:var(--muted);padding:6px;font-size:12px">Sin datos con los filtros actuales.</div>';
   document.querySelectorAll('#chart .bar-row').forEach(el=>el.onclick=()=>{
     const m=el.dataset.m; selM().value=(selM().value===m?'':m); render();});
 }
 function renderCond(){
-  const arr=[...COND].sort((a,b)=>{let x=a[condK],y=b[condK];
+  const rows=filtered('desc');
+  const ag={}; rows.forEach(d=>{const code=d.descuento;
+    const a=ag[code]=ag[code]||{descuento:code,descripcion:d.descripcion,marca:d.marca,gs:d.gs,cli:new Set(),u:0,i:0};
+    a.cli.add(d.cliente);a.u+=d.unidades;a.i+=d.importe;});
+  let arr=Object.values(ag).map(a=>({descuento:a.descuento,descripcion:a.descripcion,marca:a.marca,gs:a.gs,ncli:a.cli.size,unidades:r2(a.u),importe:r2(a.i)}));
+  arr.sort((a,b)=>{let x=a[condK],y=b[condK];
     if(typeof x==='string'){x=x.toLowerCase();y=(y||'').toLowerCase();return x<y?-condDir:x>y?condDir:0}
     return((x||0)-(y||0))*condDir;});
-  document.getElementById('condbody').innerHTML=arr.map(c=>
-    `<tr class="${activeDesc===c.descuento?'sel':''}" data-c="${c.descuento}" title="${c.descripcion} (${c.marca} ${c.gs}) — ${c.ncli} clientes, ${c.ncv} con venta">
+  document.getElementById('condbody').innerHTML=arr.length?arr.map(c=>
+    `<tr class="${activeDesc===c.descuento?'sel':''}" data-c="${c.descuento}" title="${c.descripcion} (${c.marca} ${c.gs}) — ${c.ncli} clientes">
       <td>${c.descripcion}</td><td class="ctr">${c.ncli}</td>
-      <td class="num">${eUnd(c.unidades)}</td><td class="num">${c.importe?eUnd(c.importe):'0'}</td></tr>`).join('');
+      <td class="num">${eUnd(c.unidades)}</td><td class="num">${c.importe?eUnd(c.importe):'0'}</td></tr>`).join(''):'<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:8px">Sin datos.</td></tr>';
   document.querySelectorAll('#condbody tr').forEach(el=>el.onclick=()=>{
-    const c=el.dataset.c; activeDesc=(activeDesc===c?'':c); render();});
+    const c=el.dataset.c; if(c===undefined)return; activeDesc=(activeDesc===c?'':c); render();});
   document.querySelectorAll('#condtbl thead th').forEach(th=>{const a=th.querySelector('.arr');if(a)a.textContent=th.dataset.k===condK?(condDir<0?'▼':'▲'):'';});
 }
 function renderReps(){
-  const arr=[...REPARR].sort((a,b)=>{let x=a[repK],y=b[repK];const nx=Number(x),ny=Number(y);
+  const rows=filtered('rep');
+  const ag={}; rows.forEach(d=>{if(d.nlineas<=0)return;const rc=d.rep;
+    const a=ag[rc]=ag[rc]||{rep:rc,repnom:d.repnom,cli:new Set(),u:0,i:0};a.cli.add(d.cliente);a.u+=d.unidades;a.i+=d.importe;});
+  let arr=Object.values(ag).map(a=>({rep:a.rep,repnom:a.repnom,clientes:a.cli.size,unidades:r2(a.u),importe:r2(a.i)}));
+  arr.sort((a,b)=>{let x=a[repK],y=b[repK];const nx=Number(x),ny=Number(y);
     if(repK!=='repnom'&&!isNaN(nx)&&!isNaN(ny))return (nx-ny)*repDir;
     x=String(x).toLowerCase();y=String(y).toLowerCase();return x<y?-repDir:x>y?repDir:0;});
-  document.getElementById('repbody').innerHTML=arr.map(r=>
+  document.getElementById('repbody').innerHTML=arr.length?arr.map(r=>
     `<tr class="${(activeRep!==''&&String(activeRep)===String(r.rep))?'sel':''}" data-r="${r.rep}" title="${r.repnom} — ${r.clientes} clientes con condiciones">
       <td class="ctr">${r.rep}</td><td title="${r.repnom}">${r.repnom}</td>
-      <td class="ctr">${r.clientes}</td><td class="num">${eUnd(r.unidades)}</td><td class="num">${r.importe?eUnd(r.importe):'0'}</td></tr>`).join('');
+      <td class="ctr">${r.clientes}</td><td class="num">${eUnd(r.unidades)}</td><td class="num">${r.importe?eUnd(r.importe):'0'}</td></tr>`).join(''):'<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:8px">Sin datos.</td></tr>';
   document.querySelectorAll('#repbody tr').forEach(el=>el.onclick=()=>{
-    const rc=el.dataset.r; activeRep=(String(activeRep)===String(rc)?'':rc); selR().value=activeRep; render();});
+    const rc=el.dataset.r; if(rc===undefined)return; activeRep=(String(activeRep)===String(rc)?'':rc); selR().value=activeRep; render();});
   document.querySelectorAll('#reptbl thead th').forEach(th=>{const a=th.querySelector('.arr');if(a)a.textContent=th.dataset.k===repK?(repDir<0?'▼':'▲'):'';});
 }
 function render(){
